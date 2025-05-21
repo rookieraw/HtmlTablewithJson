@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Web Page</title>
+</head>
+
+<body>
+    <h1>My Web Page</h1>
+    <p>This is the content of my web page.</p>
+    <h1>各鄉鎮人口數量</h1>
+
+    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="搜尋關鍵字...">
+
+    <table id="dataTable">
+        <thead>
+            <tr>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</body>
+<script>
+    let originalData = []; // 用來儲存原始資料，以便篩選時使用
+    const dataTable = document.getElementById('dataTable');
+    const tableBody = dataTable.querySelector('tbody');
+    const tableHeadRow = dataTable.querySelector('thead tr');
+    async function loadData() {
+        try {
+            const response = await fetch('./public/106.json');
+            if (!response.ok) {
+                throw new Error(`HTTP 錯誤! 狀態: ${response.status}`);
+            }
+            const data = await response.json();
+            originalData = data.responseData; // 儲存原始資料
+            console.log(originalData);
+            renderTable(originalData); // 渲染表格
+        } catch (error) {
+            console.error('讀取 JSON 資料時發生錯誤:', error);
+            tableBody.innerHTML = '<tr><td colspan="100%">載入資料失敗。</td></tr>';
+        }
+    }
+    // 渲染表格
+    function renderTable(data) {
+        // 清空現有表格內容
+        tableHeadRow.innerHTML = '';
+        tableBody.innerHTML = '';
+
+        if (data.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="100%">沒有資料。</td></tr>';
+            return;
+        }
+
+        // 動態生成表頭
+        const headers = Object.keys(data[0]); // 由原始資料的第一個物件的鍵取得表頭
+        headers.forEach(header => {
+            const th = document.createElement('th');
+            th.textContent = header.charAt(0).toUpperCase() + header.slice(1); // 首字母大寫
+            tableHeadRow.appendChild(th);
+        });
+
+        // 動態生成表格內容
+        data.forEach(item => {
+            const row = document.createElement('tr');
+            headers.forEach(header => {
+                const td = document.createElement('td');
+                td.textContent = item[header];
+                row.appendChild(td);
+            });
+            tableBody.appendChild(row);
+        });
+    }
+
+    // 篩選表格功能
+    function filterTable() {
+        const searchInput = document.getElementById('searchInput');
+        const filter = searchInput.value.toLowerCase(); // 轉換為小寫以便不區分大小寫搜尋
+
+        // 如果搜尋框為空，顯示所有原始資料
+        if (filter === '') {
+            renderTable(originalData);
+            return;
+        }
+
+        const filteredData = originalData.filter(item => {
+            // 檢查每個物件的每個屬性是否包含搜尋關鍵字
+            for (const key in item) {
+                if (Object.prototype.hasOwnProperty.call(item, key)) {
+                    const value = String(item[key]).toLowerCase(); // 將值轉換為字串並小寫
+                    if (value.includes(filter)) {
+                        return true; // 找到匹配項
+                    }
+                }
+            }
+            return false; // 沒有找到匹配項
+        });
+
+        renderTable(filteredData); // 渲染篩選後的資料
+    }
+
+    // 頁面載入完成後自動載入資料
+    document.addEventListener('DOMContentLoaded', loadData);
+
+</script>
+
+</html>
